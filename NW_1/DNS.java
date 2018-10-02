@@ -1,95 +1,97 @@
-import java.io.IOException;
-import java.net.UnknownHostException;
-import java.net.ServerSocket;
-import java.net.Socket;
+/*
+ * CS656-003 Group M6
+ * Harsh Patel(hsp52), Justin Ayoor(ja573), Vishal Singh(vas27),
+ * Rajeev Chanchlani(rnc26), Meghashyam Senapthi(ms2727), Gaurav Daxini(gnd6)
+ */
+
 import java.io.InputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.UnknownHostException;
 
-public class DNS{
-    public static char[] ByteToCharConv(byte[] buff) {
-        char[] charbuff = new char[buff.length];
-        for(int i=0; i<charbuff.length; i++){
-            charbuff[i] = (char)buff[i];
-        }
-        return charbuff;
-    }
-    public static InetAddress[] dns(char[] c) throws UnknownHostException{
-		byte[] bytearr = new byte[c.length];
-		for(int i=0;i<c.length;i++){
-            bytearr[i]= (byte) c[i];
-            // System.out.println(bytearr[i]);
-        }
-		InetAddress[] ipadd = InetAddress.getAllByName(new String(bytearr));
-		return ipadd;
-	  }
-    public static void main(String[] args) throws IOException{
-        if(args.length != 1){
-            System.out.println("Usage: java DNS <port number>");
-            System.exit(1);
-        }
-        int portNo = Integer.parseInt(args[0]);
-        System.out.println("DNS Server listening on socket " + portNo);
-        int servingReq = 0;
-        ServerSocket ss = null;
-        try
-        {
-            ss = new ServerSocket();
-            ss.bind(new InetSocketAddress(portNo));
-        } catch (IOException e) {
-            System.out.println("Some error occured while listing on port " + portNo);
+public class DNS 
+{
+	public static char[] ConvByteToChar(byte[] byteArray)
+	{
+		char[] charArray = (new String(byteArray)).toCharArray();
+		return charArray;
+	}
+	public static InetAddress[] dns(char[] url) throws UnknownHostException
+	{
+		InetAddress[] ip_list = InetAddress.getAllByName(new String(url));
+		return ip_list;
+	}
+	public static byte[] trimBytes(byte[] byteArr)
+	{
+		int newlen = 0;
+		for(int i=0;i<=byteArr.length;i++)
+		{
+			if(byteArr[i]==13)
+			{
+				newlen = i;
+				break;
+			}
+		}
+		byte[] trimByteArray = new byte[newlen];
+		for(int i=0;i<trimByteArray.length;i++)
+		{
+			trimByteArray[i] = byteArr[i];
+		}
+		return trimByteArray;
+	}
+	public static void main(String[] args) throws IOException {
+		if(args.length != 1) {
+			System.err.println("Usage: java DNS <port number>");
+			System.exit(1);
+		}
+		int portNumber = Integer.parseInt(args[0]);
+		System.out.println("DNS Server listening on socket " + portNumber);
+		int servingRequest = 0;
+		ServerSocket ss = null;
+		try {
+			ss = new ServerSocket();
+			ss.bind(new InetSocketAddress(portNumber));
+		} catch (IOException e) {
+			System.out.println("Some error occured while listening on port " + portNumber);
 			System.out.println("[P01 DNS - Error]: "+e.getMessage());
-        }
-        while(true)
-        {
-            Socket cs = null;
-            InputStream input = null;
-            OutputStream output = null;
-            try{
-                cs = ss.accept();
-                input = cs.getInputStream();
-    			output = cs.getOutputStream();
-                System.out.println("(" + ++servingReq + ") Client connected on port " + portNo + ". Servicing requests.");
-                byte[] bBuff = new byte[100];
-                input.read(bBuff);
-                int newlen = 0;
-                for(int i=0;i<=bBuff.length;i++)
-                {
-                    if(bBuff[i]==13)
-                    {
-                        newlen = i;
-                        break;
-                    }
-                }
-                byte[] bBuffCSize = new byte[newlen];
-                for(int i=0;i<bBuffCSize.length;i++)
-                {
-                    bBuffCSize[i] = bBuff[i];
-                }
-                char [] cBuff = ByteToCharConv(bBuffCSize);
-                System.out.print("\tREQ: ");
-                System.out.print(cBuff);
-                System.out.println("\n");
-                InetAddress[] ipaddressArr = dns(cBuff);
-                for(InetAddress host:ipaddressArr)
-                {
-                    byte[] bytesArr = (host.getHostAddress()).getBytes();
-                    output.write(bytesArr);
-                    output.write('\n');
-                }
-                Socket host_sock = new Socket(new String(cBuff), 80);
-                byte[] host_ip = host_sock.getInetAddress().getHostAddress().getBytes();
-                byte[] out = "Preffered IP: ".getBytes();
-                output.write(out);
-                output.write(host_ip);
-                output.write('\n');
-                cs.close();
-            } catch (Exception e) {
-            System.out.println("Exception caught when trying to listen on port " + portNo + " or listening for a connection");
-            System.out.println("[P01 DNS - Error]: "+e.getMessage());
-            }
-        }        
-    }
+		}
+		while (true) {
+			Socket cs = null;
+			OutputStream out = null;
+			InputStream in = null;
+			try {
+				cs = ss.accept();
+				out = cs.getOutputStream();
+				in = cs.getInputStream();
+				System.out.println("(" + ++servingRequest + ") Incoming client connection from [" + cs.getInetAddress().getHostAddress() + ":" + cs.getPort() + "] to me [" + ss.getInetAddress().getHostAddress() + ":" + ss.getLocalPort() + "]");
+				byte[] requestedHost = new byte[100];
+				in.read(requestedHost);
+				requestedHost = trimBytes(requestedHost);
+				System.out.println("\tREQ: " + new String(requestedHost));
+				//char[] host_url = ConvByteToChar(requestedHost);
+				InetAddress[] ip_list = dns(ConvByteToChar(requestedHost));
+				for(InetAddress host:ip_list)
+				{
+					byte[] ip = host.getHostAddress().getBytes();
+					out.write(ip);
+					out.write('\n');
+				}
+				byte[] output = "Preferred IP: ".getBytes();
+				Socket req_host = new Socket(new String(ConvByteToChar(requestedHost)), 80);
+				byte[] pref_ip = req_host.getInetAddress().getHostAddress().getBytes();
+				out.write(output);
+				out.write(pref_ip);
+				out.write('\n');
+				cs.close();
+			} catch (IOException e) {
+				System.out.println("Some error occured while listening on port " + portNumber);
+				System.out.println("[P01 DNS - Error]: "+e.getMessage());
+			}
+		}
+	}
 }
-
