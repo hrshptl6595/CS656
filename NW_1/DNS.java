@@ -55,19 +55,12 @@ public class DNS
 			System.out.println("DNS Server listening on socket " + portNumber);
 			int servingRequest = 0;
 			ServerSocket ss = null;
-		// try {
 			ss = new ServerSocket();
 			ss.bind(new InetSocketAddress(portNumber));
-		// } catch (IOException e) {
-		// 	System.out.println("Some error occured while listening on port " + portNumber);
-		// 	System.out.println("[P01 DNS - Error]: "+e.getMessage());
-		// 	System.exit(1);
-		// }
 			while (true) {
 				Socket cs = null;
 				OutputStream out = null;
 				InputStream in = null;
-				// try {
 					cs = ss.accept();
 					out = cs.getOutputStream();
 					in = cs.getInputStream();
@@ -76,7 +69,6 @@ public class DNS
 					in.read(requestedHost);
 					requestedHost = trimBytes(requestedHost);
 					System.out.println("\tREQ: " + new String(requestedHost));
-					//char[] host_url = ConvByteToChar(requestedHost);
 					InetAddress[] ip_list = dns(ConvByteToChar(requestedHost));
 					for(InetAddress host:ip_list)
 					{
