@@ -3,7 +3,6 @@
  * Harsh Patel(hsp52), Justin Ayoor(ja573), Vishal Singh(vas27),
  * Rajeev Chanchlani(rnc26), Meghashyam Senapthi(ms2727), Gaurav Daxini(gnd6)
  */
-
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -14,41 +13,32 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 
-public class DNS 
-{
-	public static char[] ConvByteToChar(byte[] byteArray)
-	{
+public class DNS {
+	public static char[] ConvByteToChar(byte[] byteArray){
 		char[] charArray = (new String(byteArray)).toCharArray();
 		return charArray;
 	}
-	public static int ConvCharToInt(char[] charArray)
-	{
+	public static int ConvCharToInt(char[] charArray){
 		int num = 0;
-		for(int i=0; i<charArray.length; i++)
-		{
+		for(int i=0; i<charArray.length; i++){
 			num = num*10 + (charArray[i] - '0');
 		}
 		return num;
 	}
-	public static InetAddress[] dns(char[] url) throws UnknownHostException
-	{
+	public static InetAddress[] dns(char[] url) throws UnknownHostException	{
 		InetAddress[] ip_list = InetAddress.getAllByName(new String(url));
 		return ip_list;
 	}
-	public static byte[] trimBytes(byte[] byteArr)
-	{
+	public static byte[] trimBytes(byte[] byteArr){
 		int newlen = 0;
-		for(int i=0;i<=byteArr.length;i++)
-		{
-			if(byteArr[i]==13)
-			{
+		for(int i=0;i<=byteArr.length;i++){
+			if(byteArr[i]==13){
 				newlen = i;
 				break;
 			}
 		}
 		byte[] trimByteArray = new byte[newlen];
-		for(int i=0;i<trimByteArray.length;i++)
-		{
+		for(int i=0;i<trimByteArray.length;i++){
 			trimByteArray[i] = byteArr[i];
 		}
 		return trimByteArray;
@@ -61,42 +51,51 @@ public class DNS
 		}
 		try {
 			char[] p_num = args[0].toCharArray();
-			//System.out.print(p_num);
 			portNumber = ConvCharToInt(p_num);
 			System.out.println("DNS Server listening on socket " + portNumber);
 			int servingRequest = 0;
-			ServerSocket ss = null;
-			ss = new ServerSocket();
-			ss.bind(new InetSocketAddress(portNumber));
+			ServerSocket server = null;
+			server = new ServerSocket();
+			server.bind(new InetSocketAddress(portNumber));
 			while (true) {
-				Socket cs = null;
-				OutputStream out = null;
-				InputStream in = null;
-					cs = ss.accept();
-					out = cs.getOutputStream();
-					in = cs.getInputStream();
-					System.out.println("(" + ++servingRequest + ") Incoming client connection from [" + cs.getInetAddress().getHostAddress() + ":" + cs.getPort() + "] to me [" + ss.getInetAddress().getHostAddress() + ":" + ss.getLocalPort() + "]");
+				Socket client = null;
+				OutputStream client_out = null;
+				InputStream client_in = null;
+					client = server.accept();
+					client_out = client.getOutputStream();
+					client_in = client.getInputStream();
+					System.out.println("(" + ++servingRequest + ") Incoming client connection from [" + client.getInetAddress().getHostAddress() + ":" + client.getPort() + "] to me [" + server.getInetAddress().getHostAddress() + ":" + server.getLocalPort() + "]");
 					byte[] requestedHost = new byte[100];
-					in.read(requestedHost);
+					client_in.read(requestedHost);
 					requestedHost = trimBytes(requestedHost);
 					System.out.println("\tREQ: " + new String(requestedHost));
 					InetAddress[] ip_list = dns(ConvByteToChar(requestedHost));
-					for(InetAddress host:ip_list)
-					{
+					int min_time = 0;
+					long start_time, finish_time = 0;
+					byte[] pref_ip_out = null;
+					for(InetAddress host:ip_list){
 						byte[] ip = host.getHostAddress().getBytes();
-						out.write('I');
-						out.write('P');
-						out.write(':');
-						out.write(ip);
-						out.write('\n');
+						byte[] ip_out = "IP: ".getBytes();
+						client_out.write(ip_out);
+						client_out.write(ip);
+						client_out.write('\n');
+						start_time = System.currentTimeMillis();
+						if(host.isReachable(5000) == true){
+							finish_time = System.currentTimeMillis();
+							if(min_time == 0 || min_time>((int)(finish_time - start_time))){
+								min_time = (int)(finish_time - start_time);
+								pref_ip_out = ip;
+								client_out.write('\\');
+								client_out.write(ip);
+								client_out.write('\n');
+							}
+						}
 					}
 					byte[] output = "Preferred IP: ".getBytes();
-					Socket req_host = new Socket(new String(ConvByteToChar(requestedHost)), 80);
-					byte[] pref_ip = req_host.getInetAddress().getHostAddress().getBytes();
-					out.write(output);
-					out.write(pref_ip);
-					out.write('\n');
-					cs.close();
+					client_out.write(output);
+					client_out.write(pref_ip_out);
+					client_out.write('\n');
+					client.close();
 			} 
 		}catch (IOException e) {
 			System.out.println("Some error occured while listening on port " + portNumber);
