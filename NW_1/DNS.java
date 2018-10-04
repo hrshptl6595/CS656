@@ -21,6 +21,15 @@ public class DNS
 		char[] charArray = (new String(byteArray)).toCharArray();
 		return charArray;
 	}
+	public static int ConvCharToInt(char[] charArray)
+	{
+		int num = 0;
+		for(int i=0; i<charArray.length; i++)
+		{
+			num = num*10 + (charArray[i] - '0');
+		}
+		return num;
+	}
 	public static InetAddress[] dns(char[] url) throws UnknownHostException
 	{
 		InetAddress[] ip_list = InetAddress.getAllByName(new String(url));
@@ -51,7 +60,9 @@ public class DNS
 			System.exit(1);
 		}
 		try {
-			portNumber = Integer.parseInt(args[0]);
+			char[] p_num = args[0].toCharArray();
+			//System.out.print(p_num);
+			portNumber = ConvCharToInt(p_num);
 			System.out.println("DNS Server listening on socket " + portNumber);
 			int servingRequest = 0;
 			ServerSocket ss = null;
