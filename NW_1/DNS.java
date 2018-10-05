@@ -13,16 +13,18 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 
-public class DNS {
-
-	public static int ConvCharToInt(char[] charArray) {
+public class DNS
+{
+	public static int ConvCharToInt(char[] charArray)
+	{
 		int num = 0;
 		for(int i=0; i<charArray.length; i++) {
 			num = num*10 + (charArray[i] - '0');
 		}
 		return num;
 	}
-	public static byte[] trimBytes(byte[] byteArr) {
+	public static byte[] trimBytes(byte[] byteArr)
+	{
 		int newlen = 0;
 		for(int i=0;i<=byteArr.length;i++) {
 			if(byteArr[i] == 13) {		// 13 is the ASCII value for carriage return(CR)
@@ -49,24 +51,24 @@ public class DNS {
 		}		
 
 	}
-	public static void dns(byte[] host, OutputStream out) {
+	public static void dns(byte[] host, OutputStream out)
+	{
 		try {
 			int min_time = 0;
-			// long start_time = 0, finish_time = 0;
 			InetAddress preferredIP = null;
 			try {
 				InetAddress[] ip_list = InetAddress.getAllByName(new String(host));
 				for(InetAddress hostIP:ip_list) {
 					out.write((" IP: " + hostIP.getHostAddress() + "\n").getBytes());
-					if(min_time == 0 || min_time>rtt(hostIP.getAddress()))
+					int roundTT = rtt(hostIP.getAddress());
+					if(min_time == 0 || min_time>roundTT)
 					{
-						min_time = rtt(hostIP.getAddress());
-						System.out.println("Min time for " + hostIP.getHostAddress() + " :" + min_time);
+						min_time = roundTT;
 						preferredIP = hostIP;
 					}
 				}
 				out.write(" Preferred IP: ".getBytes());
-				out.write(preferredIP.getHostAddress().getBytes());
+				out.write((preferredIP.getHostAddress() + "\n").getBytes());
 			} catch (UnknownHostException e) {
 				out.write(("NO IP ADDRESS FOUND\n").getBytes());
 			}
@@ -78,7 +80,8 @@ public class DNS {
 		return;
 	}
 	static int portNumber;
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException
+	{
 		if(args.length != 1) {
 			System.err.println("Usage: java DNS <port number>");
 			System.exit(1);
