@@ -13,36 +13,58 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 
-public class DNS {
-	public static char[] ConvByteToChar(byte[] byteArray){
-		char[] charArray = (new String(byteArray)).toCharArray();
-		return charArray;
-	}
-	public static int ConvCharToInt(char[] charArray){
+public class DNS1 {
+	
+	public static int ConvCharToInt(char[] charArray) {
 		int num = 0;
-		for(int i=0; i<charArray.length; i++){
+		for(int i=0; i<charArray.length; i++) {
 			num = num*10 + (charArray[i] - '0');
 		}
 		return num;
 	}
-	public static InetAddress[] dns(char[] url) throws UnknownHostException	{
-		InetAddress[] ip_list = InetAddress.getAllByName(new String(url));
-		return ip_list;
-	}
-	public static byte[] trimBytes(byte[] byteArr){
+
+	public static byte[] trimBytes(byte[] byteArr) {
 		int newlen = 0;
-		for(int i=0;i<=byteArr.length;i++){
-			if(byteArr[i]==13){
+		for(int i=0;i<=byteArr.length;i++) {
+			if(byteArr[i] == 13) {		// 13 is the ASCII value for carriage return(CR)
 				newlen = i;
 				break;
 			}
 		}
 		byte[] trimByteArray = new byte[newlen];
-		for(int i=0;i<trimByteArray.length;i++){
+		for(int i=0;i<trimByteArray.length;i++) {
 			trimByteArray[i] = byteArr[i];
 		}
 		return trimByteArray;
 	}
+	
+	public static void dns(byte[] host, OutputStream out) {
+		try {
+			InetAddress preferredIP = null;
+			try {
+				InetAddress[] ip_list = InetAddress.getAllByName(new String(host));
+				for(InetAddress hostIP:ip_list) {
+					out.write((" IP: " + hostIP.getHostAddress() + "\n").getBytes());
+					if(preferredIP == null && hostIP.isReachable(1000)) {
+						preferredIP = hostIP;
+					}	
+				}
+				/*Socket req_host = new Socket(new String(host), 80);
+				byte[] pref_ip = req_host.getInetAddress().getHostAddress().getBytes();*/
+				out.write(" Preferred IP: ".getBytes());
+				//out.write(pref_ip);
+				out.write(preferredIP.getHostAddress().getBytes());
+			} catch (UnknownHostException e) {
+				out.write(("NO IP ADDRESS FOUND\n").getBytes());
+			}
+		} catch (IOException | NumberFormatException e) {
+			System.out.println("Some error occured while listening on port " + portNumber);
+			System.out.println("[P01 DNS - Error]: "+e.getMessage());
+			System.exit(1);
+		}
+		return;
+	}
+	
 	static int portNumber;
 	public static void main(String[] args) throws IOException {
 		if(args.length != 1) {
@@ -54,55 +76,22 @@ public class DNS {
 			portNumber = ConvCharToInt(p_num);
 			System.out.println("DNS Server listening on socket " + portNumber);
 			int servingRequest = 0;
-			ServerSocket server = null;
-			server = new ServerSocket();
-			server.bind(new InetSocketAddress(portNumber));
+			ServerSocket ss = new ServerSocket();
+			ss.bind(new InetSocketAddress(portNumber));
 			while (true) {
-				Socket client = null;
-				OutputStream client_out = null;
-				InputStream client_in = null;
-					client = server.accept();
-					client_out = client.getOutputStream();
-					client_in = client.getInputStream();
-					System.out.println("(" + ++servingRequest + ") Incoming client connection from [" + client.getInetAddress().getHostAddress() + ":" + client.getPort() + "] to me [" + server.getInetAddress().getHostAddress() + ":" + server.getLocalPort() + "]");
-					byte[] requestedHost = new byte[100];
-					client_in.read(requestedHost);
-					requestedHost = trimBytes(requestedHost);
-					System.out.println("\tREQ: " + new String(requestedHost));
-					InetAddress[] ip_list = dns(ConvByteToChar(requestedHost));
-					int min_time = 0;
-					long start_time, finish_time = 0;
-					byte[] pref_ip_out = null;
-					for(InetAddress host:ip_list){
-						byte[] ip = host.getHostAddress().getBytes();
-						byte[] ip_out = "IP: ".getBytes();
-						client_out.write(ip_out);
-						client_out.write(ip);
-						client_out.write('\n');
-						start_time = System.currentTimeMillis();
-						if(host.isReachable(5000) == true){
-							finish_time = System.currentTimeMillis();
-							if(min_time == 0 || min_time>((int)(finish_time - start_time))){
-								min_time = (int)(finish_time - start_time);
-								pref_ip_out = ip;
-								client_out.write('\\');
-								client_out.write(ip);
-								client_out.write('\n');
-							}
-						}
-					}
-					byte[] output = "Preferred IP: ".getBytes();
-					client_out.write(output);
-					client_out.write(pref_ip_out);
-					client_out.write('\n');
-					client.close();
+				Socket cs = ss.accept();
+				InputStream in = cs.getInputStream();
+				OutputStream out = cs.getOutputStream();
+				System.out.println("(" + ++servingRequest + ") Incoming client connection from [" + cs.getInetAddress().getHostAddress() + ":" + cs.getPort() + "] to me [" + ss.getInetAddress().getHostAddress() + ":" + ss.getLocalPort() + "]");
+				byte[] requestedHost = new byte[1024];
+				in.read(requestedHost, 0, requestedHost.length);
+				requestedHost = trimBytes(requestedHost);
+				System.out.println("\tREQ: " + new String(requestedHost));
+				dns(requestedHost, out);
+				cs.close();
 			} 
-		}catch (IOException e) {
+		}catch (IOException | NumberFormatException e) {
 			System.out.println("Some error occured while listening on port " + portNumber);
-			System.out.println("[P01 DNS - Error]: "+e.getMessage());
-			System.exit(1);
-		} catch (NumberFormatException e){
-			System.out.println("Usage: java DNS <port number> should be in Integer Format");
 			System.out.println("[P01 DNS - Error]: "+e.getMessage());
 			System.exit(1);
 		}
