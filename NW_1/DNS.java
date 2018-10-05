@@ -36,18 +36,32 @@ public class DNS {
 		}
 		return trimByteArray;
 	}
+	public static int rtt(byte[] req_ip) throws UnknownHostException
+	{
+		long start_time = System.nanoTime();
+		try{
+			InetAddress obj = InetAddress.getByAddress(req_ip);
+			long finish_time = System.nanoTime();
+			return (int)(finish_time - start_time);
+		}catch (UnknownHostException e)
+		{
+			return 0;
+		}		
+
+	}
 	public static void dns(byte[] host, OutputStream out) {
 		try {
 			int min_time = 0;
-			long start_time = 0, finish_time = 0;
+			// long start_time = 0, finish_time = 0;
 			InetAddress preferredIP = null;
 			try {
 				InetAddress[] ip_list = InetAddress.getAllByName(new String(host));
 				for(InetAddress hostIP:ip_list) {
 					out.write((" IP: " + hostIP.getHostAddress() + "\n").getBytes());
-					start_time = System.currentTimeMillis();
-					
-					if(preferredIP == null) {
+					if(min_time == 0 || min_time>rtt(hostIP.getAddress()))
+					{
+						min_time = rtt(hostIP.getAddress());
+						System.out.println("Min time for " + hostIP.getHostAddress() + " :" + min_time);
 						preferredIP = hostIP;
 					}
 				}
