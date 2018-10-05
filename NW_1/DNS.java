@@ -109,7 +109,7 @@ public class DNS
 				byte[] requestedHost = new byte[1024]; // Creating byte array for Host Name
 				client_in.read(requestedHost, 0, requestedHost.length); //
 				requestedHost = trimBytes(requestedHost);
-				System.out.println("\tREQ: " + new String(requestedHost));
+				System.out.println("\tREQ: " + new String(requestedHost) + "\n");
 				dns(requestedHost, client_out);
 				client.close();
 			}
