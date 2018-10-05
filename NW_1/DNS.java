@@ -13,8 +13,8 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 
-public class DNS1 {
-	
+public class DNS {
+
 	public static int ConvCharToInt(char[] charArray) {
 		int num = 0;
 		for(int i=0; i<charArray.length; i++) {
@@ -22,7 +22,6 @@ public class DNS1 {
 		}
 		return num;
 	}
-
 	public static byte[] trimBytes(byte[] byteArr) {
 		int newlen = 0;
 		for(int i=0;i<=byteArr.length;i++) {
@@ -37,22 +36,22 @@ public class DNS1 {
 		}
 		return trimByteArray;
 	}
-	
 	public static void dns(byte[] host, OutputStream out) {
 		try {
+			int min_time = 0;
+			long start_time = 0, finish_time = 0;
 			InetAddress preferredIP = null;
 			try {
 				InetAddress[] ip_list = InetAddress.getAllByName(new String(host));
 				for(InetAddress hostIP:ip_list) {
 					out.write((" IP: " + hostIP.getHostAddress() + "\n").getBytes());
-					if(preferredIP == null && hostIP.isReachable(1000)) {
+					start_time = System.currentTimeMillis();
+					
+					if(preferredIP == null) {
 						preferredIP = hostIP;
-					}	
+					}
 				}
-				/*Socket req_host = new Socket(new String(host), 80);
-				byte[] pref_ip = req_host.getInetAddress().getHostAddress().getBytes();*/
 				out.write(" Preferred IP: ".getBytes());
-				//out.write(pref_ip);
 				out.write(preferredIP.getHostAddress().getBytes());
 			} catch (UnknownHostException e) {
 				out.write(("NO IP ADDRESS FOUND\n").getBytes());
@@ -64,7 +63,6 @@ public class DNS1 {
 		}
 		return;
 	}
-	
 	static int portNumber;
 	public static void main(String[] args) throws IOException {
 		if(args.length != 1) {
@@ -89,7 +87,7 @@ public class DNS1 {
 				System.out.println("\tREQ: " + new String(requestedHost));
 				dns(requestedHost, out);
 				cs.close();
-			} 
+			}
 		}catch (IOException | NumberFormatException e) {
 			System.out.println("Some error occured while listening on port " + portNumber);
 			System.out.println("[P01 DNS - Error]: "+e.getMessage());
