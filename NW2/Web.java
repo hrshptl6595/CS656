@@ -16,6 +16,7 @@ import java.net.UnknownHostException;
 
 public class Web
 {
+	static int portNumber;
     public static int ConvCharToInt(char[] charArray) // Used to parse Port Number into Int Format
 	{
 		int num = 0;
@@ -40,29 +41,7 @@ public class Web
 		}
 		return trimByteArray;
     }
-    
-    public static void dns(byte[] host, OutputStream out) // DNS method
-	{
-		try {
-			int min_time = 0; 
-			InetAddress preferredIP = null; 
-			try {
-				InetAddress[] ip_list = InetAddress.getAllByName(new String(host)); // Get list of IP Addresses
-				for(InetAddress hostIP:ip_list) { // Iteration throughout the IP List
-					out.write((" IP: " + hostIP.getHostAddress() + "\n").getBytes()); // Send IP List to Client
-				}
-				out.write(" Preferred IP: ".getBytes()); 
-				out.write((preferredIP.getHostAddress() + "\n").getBytes()); // Send Preferred IP to Client
-			} catch (UnknownHostException e) {
-				out.write(("NO IP ADDRESS FOUND\n").getBytes());
-			}
-		} catch (IOException | NumberFormatException e) {
-			System.out.println("Some error occured while listening on port " + portNumber);
-			System.out.println("[P01 DNS - Error]: "+e.getMessage());
-			System.exit(1);
-		}
-    }
-    
+        
     public static void doParse()
     {
 
@@ -75,6 +54,32 @@ public class Web
 
     public static void main(String[] args)
     {
-
+		if(args.length != 1) {
+			System.err.println("Usage: java DNS <port number>");
+			System.exit(1);
+		}
+		try {
+			char[] p_num = args[0].toCharArray(); // Converting the String Format into a Char array 
+			portNumber = ConvCharToInt(p_num); // Conver the Char array to get the Port Number in Integer Format
+			System.out.println("DNS Server listening on socket " + portNumber);
+			int servingRequest = 0;
+			ServerSocket server = new ServerSocket(); // Make a Server Socket
+			server.bind(new InetSocketAddress(portNumber)); // Bind Socket with Port Number
+			while (true) { // Printing Server Side Information
+				Socket client = server.accept(); // Make a Server Socket
+				InputStream client_in = client.getInputStream(); 
+				OutputStream client_out = client.getOutputStream();
+				System.out.println("(" + ++servingRequest + ") Incoming client connection from [" + client.getInetAddress().getHostAddress() + ":" + client.getPort() + "] to me [" + InetAddress.getLocalHost().getHostAddress() + ":" + server.getLocalPort() + "]");
+				byte[] requestedHost = new byte[8196]; // Creating byte array for Host Name
+				client_in.read(requestedHost, 0, requestedHost.length);
+				requestedHost = trimBytes(requestedHost);
+				System.out.println("\tREQ: " + new String(requestedHost) + "\n");
+				client.close();
+			}
+		}catch (IOException | NumberFormatException e) {
+			System.out.println("Some error occured while listening on port " + portNumber);
+			System.out.println("[P01 DNS - Error]: "+e.getMessage());
+			System.exit(1);
+		}
     }
 }
