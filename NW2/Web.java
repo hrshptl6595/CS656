@@ -174,7 +174,6 @@ public class Web {
             System.err.println("Usage: java Web <port number>");
             System.exit(1);
         }
-        //*.local, 169.254/16
         try {
             char[] p_num = args[0].toCharArray(); // Converting the String Format into a Char array 
             portNumber = ConvCharToInt(p_num); // Conver the Char array to get the Port Number in Integer Format
