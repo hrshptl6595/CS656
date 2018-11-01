@@ -92,7 +92,7 @@ public class Web {
         } catch (IOException e) {
             System.out.println("NO IP ADDRESS FOUND\n");
             System.out.println("[P02 Proxy - Error]: " + e.getMessage());
-            System.out.println("HTTP/1.1 404 - Not Found");
+            //System.out.println("HTTP/1.1 404 - Not Found");
         }
         if(preferredIP == null){
             byte dummybyte[] = {1};
@@ -207,7 +207,7 @@ public class Web {
                 
                 byte[] hostIP = dns(host);
                 if(hostIP[0] == 1){
-                    System.out.println("IP Not Found");
+                    System.out.println("HTTP/1.1 400 - Bad Request");
                 }
                 byte[] path = getHostOrPath(requestURI, true);
                 client_out.write("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: Keep-Alive\r\n\r\n".getBytes());
