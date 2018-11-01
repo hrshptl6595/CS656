@@ -94,7 +94,13 @@ public class Web {
             System.out.println("[P02 Proxy - Error]: " + e.getMessage());
             System.out.println("HTTP/1.1 404 - Not Found");
         }
-        return preferredIP.getHostAddress().getBytes();
+        if(preferredIP == null){
+            byte dummybyte[] = {1};
+            return dummybyte;
+        } else{
+            return preferredIP.getHostAddress().getBytes();
+        }
+        
     }
     /*
      * Will parse the Request Object to get the document path and will also check for blocked hosts
@@ -200,6 +206,9 @@ public class Web {
                 byte[] host = getHostOrPath(requestURI, false);
                 
                 byte[] hostIP = dns(host);
+                if(hostIP[0] == 1){
+                    System.out.println("IP Not Found");
+                }
                 byte[] path = getHostOrPath(requestURI, true);
                 client_out.write("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: Keep-Alive\r\n\r\n".getBytes());
                 byte[] response = responseBuilder(stripByte(requestObject), "\n\nHOSTIP = ".getBytes());
