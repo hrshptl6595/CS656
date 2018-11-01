@@ -91,14 +91,14 @@ public class Web {
         } catch (IOException e) {
             System.out.println("NO IP ADDRESS FOUND\n");
             System.out.println("[P02 Proxy - Error]: " + e.getMessage());
-            System.exit(1);
+            System.out.println("HTTP/1.1 404 - Not Found");
         }
         return preferredIP.getHostAddress().getBytes();
     }
     /*
      * Will parse the Request Object to get the document path and will also check for blocked hosts
      */
-    public static byte[] doParse(byte[] request) throws Exception {
+    public static byte[] doParse(byte[] request){
         byte[] httpVerb = new byte[20];
         byte[] requestURI = new byte[MAX_URI_LENGTH];
         byte[] protocol = new byte[20];
@@ -125,7 +125,7 @@ public class Web {
         }
         // TODO 
         if (!byteArrContains("GET".getBytes(), httpVerb)) {
-            throw new Exception();
+            System.out.println("HTTP/1.1 404 - Bad Request");
         }
         return requestURI;
     };
@@ -174,6 +174,7 @@ public class Web {
             System.err.println("Usage: java Web <port number>");
             System.exit(1);
         }
+        //*.local, 169.254/16
         try {
             char[] p_num = args[0].toCharArray(); // Converting the String Format into a Char array 
             portNumber = ConvCharToInt(p_num); // Conver the Char array to get the Port Number in Integer Format
@@ -190,15 +191,15 @@ public class Web {
                 byte[] requestURI = new byte[MAX_URI_LENGTH];
                 byte[] request = trimBytes(requestObject);
                 System.out.println("\t(" + ++servingRequest + ") REQ: " + new String(request));
-                try {
-                    requestURI = doParse(request);
-                } catch (Exception e) {
-                    System.out.println("P02 Proxy - Error: Unable to parse the request");
-                }
+                //try {
+                requestURI = doParse(request);
+                //} catch (Exception e) {
+                //    System.out.println("P02 Proxy - Error: Unable to parse the request");
+                //}
                 byte[] host = getHostOrPath(requestURI, false);
                 byte[] hostIP = dns(host);
                 byte[] path = getHostOrPath(requestURI, true);
-                //client_out.write("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: Keep-Alive\r\n\r\n".getBytes());
+                client_out.write("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: Keep-Alive\r\n\r\n".getBytes());
                 byte[] response = responseBuilder(stripByte(requestObject), "\n\nHOSTIP = ".getBytes());
                 response = responseBuilder(response, trimBytes(host));
                 response = responseBuilder(response, " (".getBytes());
@@ -207,6 +208,7 @@ public class Web {
                 response = responseBuilder(response, ("PORT = "+ HTTP_PORT +"\n").getBytes());
                 response = responseBuilder(response, "PATH = ".getBytes());
                 response = responseBuilder(response, trimBytes(path));
+                client_out.write("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: Keep-Alive\r\n\r\n".getBytes());
                 client_out.write(response);
                 client_out.close();
                 client.close();
@@ -214,7 +216,7 @@ public class Web {
         } catch (IOException | NumberFormatException e) {
             System.out.println("Some error occured while listening on port " + portNumber);
             System.out.println("[P02 Proxy - Error]: " + e.getMessage());
-            System.exit(1);
+            System.out.println("HTTP/1.1 400 - Bad Request");
         }
     }
 }
