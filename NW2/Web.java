@@ -88,6 +88,7 @@ public class Web {
                     preferredIP = hostIP; // Update the Preferred IP
                 }
             }
+            return preferredIP.getHostAddress().getBytes();
         } catch (IOException e) {
             System.out.println("NO IP ADDRESS FOUND\n");
             System.out.println("[P02 Proxy - Error]: " + e.getMessage());
@@ -174,7 +175,6 @@ public class Web {
             System.err.println("Usage: java Web <port number>");
             System.exit(1);
         }
-        //*.local, 169.254/16
         try {
             char[] p_num = args[0].toCharArray(); // Converting the String Format into a Char array 
             portNumber = ConvCharToInt(p_num); // Conver the Char array to get the Port Number in Integer Format
