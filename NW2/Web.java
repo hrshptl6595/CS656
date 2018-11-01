@@ -196,6 +196,7 @@ public class Web {
                 //} catch (Exception e) {
                 //    System.out.println("P02 Proxy - Error: Unable to parse the request");
                 //}
+                //*.local, 169.254/16
                 byte[] host = getHostOrPath(requestURI, false);
                 
                 byte[] hostIP = dns(host);
