@@ -198,7 +198,7 @@ public class Web {
                 byte[] host = getHostOrPath(requestURI, false);
                 byte[] hostIP = dns(host);
                 byte[] path = getHostOrPath(requestURI, true);
-                client_out.write("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: Keep-Alive\r\n\r\n".getBytes());
+                //client_out.write("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: Keep-Alive\r\n\r\n".getBytes());
                 byte[] response = responseBuilder(stripByte(requestObject), "\n\nHOSTIP = ".getBytes());
                 response = responseBuilder(response, trimBytes(host));
                 response = responseBuilder(response, " (".getBytes());
