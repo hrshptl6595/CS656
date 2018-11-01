@@ -88,6 +88,7 @@ public class Web {
                     preferredIP = hostIP; // Update the Preferred IP
                 }
             }
+            return preferredIP.getHostAddress().getBytes();
         } catch (IOException e) {
             System.out.println("NO IP ADDRESS FOUND\n");
             System.out.println("[P02 Proxy - Error]: " + e.getMessage());
