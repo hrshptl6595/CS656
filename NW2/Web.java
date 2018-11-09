@@ -79,6 +79,7 @@ public class Web {
     }
     public static byte[] dns(byte[] host) { // Main DNS method
         int min_time = 0;
+        byte[] dummybyte = {1};
         InetAddress preferredIP = null;
         try {
             InetAddress[] ip_list = InetAddress.getAllByName(new String(host)); // Get list of IP Addresses
@@ -93,10 +94,14 @@ public class Web {
         } catch (IOException e) {
             System.out.println("NO IP ADDRESS FOUND\n");
             System.out.println("[P02 Proxy - Error]: " + e.getMessage());
-            System.exit(1);
+            // System.exit(1);
         }
-        return preferredIP.getHostAddress().getBytes();
-    }
+        if(preferredIP == null){
+            System.out.println("No Ip Address Found");
+            return(dummybyte);
+        }else{
+            return preferredIP.getHostAddress().getBytes();
+    }}
     /*
      * Will parse the Request Object to get the document path and will also check for blocked hosts
      */
