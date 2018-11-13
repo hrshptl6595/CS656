@@ -23,6 +23,7 @@ public class Web {
     static final int HTTP_PORT = 80;
     static final int MAX_RESPONSE_BUFFER = 1024*1024;
     static final int HTTP_BAD_REQUEST = 400;
+    static final int HTTP_FORBIDDEN_REQUEST = 403;
     public static int ConvCharToInt(char[] charArray) { // Used to parse Port Number into Int Format
         int num = 0;
         for (int i = 0; i < charArray.length; i++) {
@@ -31,9 +32,9 @@ public class Web {
         return num;
     }
     public static boolean byteArrContains(byte[] needle, byte[] haystack) {
-        for (int i = 0; i < haystack.length - needle.length + 1; ++i) {
+        for (int i = 0; i < haystack.length - needle.length + 1; i++) {
             boolean found = true;
-            for (int j = 0; j < needle.length; ++j) {
+            for (int j = 0; j < needle.length; j++) {
                 if (haystack[i + j] != needle[j]) {
                     found = false;
                     break;
@@ -152,6 +153,15 @@ public class Web {
 			System.out.println("[P02 Proxy Error]: " + e.getMessage());
 		}
     }
+    public static void sendForbiddenError(OutputStream client_out) {
+    	try {
+	    	client_out.write(("HTTP/1.1 "+ HTTP_FORBIDDEN_REQUEST +" Forbidden\r\nContent-Type: text/html\r\nConnection: Keep-Alive\r\n\r\n").getBytes());
+	    	client_out.write(("<h1>" + HTTP_FORBIDDEN_REQUEST + " Forbidden</h1>").getBytes());
+	    	client_out.write("<h4>You are restricted to view this content!</h4>".getBytes());
+    	} catch (IOException e) {
+			System.out.println("[P02 Proxy Error]: " + e.getMessage());
+		}
+    }
     public static byte[] getHostOrPath(byte[] requestURI, boolean needPath) {
         byte[] protocol = {
             requestURI[0],
@@ -179,7 +189,7 @@ public class Web {
                 host[hostIndex++] = requestURI[i];
             }
         }
-        return needPath ? path : host;
+        return needPath ? trimBytes(path) : trimBytes(host);
     }
     public static byte[] responseBuilder(byte[] previousArr, byte[] newArr) {
         byte[] response = new byte[previousArr.length + newArr.length];
@@ -206,14 +216,12 @@ public class Web {
     	return;
     }
 
-    public static byte[] blacklist(byte[] fname) throws IOException
-    {
+    public static byte[] getBlackListedHosts(byte[] fname) throws IOException {
         FileInputStream fin = new FileInputStream(new String(fname));
         byte[] content = new byte[fin.available()];
         int x;
         int i = 0;
-        while((x = fin.read()) != -1)
-        {
+        while((x = fin.read()) != -1) {
             content[i] = (byte)x;
             i++;
         }
@@ -228,7 +236,7 @@ public class Web {
         }
         try {
             byte[] file_name = args[1].getBytes();
-            byte[] blacklist_urls = blacklist(file_name);
+            byte[] blacklist_urls = getBlackListedHosts(file_name);
             char[] p_num = args[0].toCharArray(); // Converting the String Format into a Char array 
             portNumber = ConvCharToInt(p_num); // Conver the Char array to get the Port Number in Integer Format
             System.out.println("Web Proxy program by (hsp52@njit.edu) listening on port (" + portNumber + ")");
@@ -246,25 +254,24 @@ public class Web {
                 System.out.println("\t(" + ++servingRequest + ") REQ: " + new String(request));
                 try {
                     requestURI = doParse(request);
+                    byte[] host = getHostOrPath(requestURI, false);
+                    if(byteArrContains(host, blacklist_urls)) {
+                    	sendForbiddenError(client_out);
+                    } else {
+	                    byte[] hostIP = dns(host);
+	                    byte[] path = getHostOrPath(requestURI, true);
+	                    long sTime = System.nanoTime();
+	                    doHTTP(hostIP, requestObject, client_out);
+	                    long eTime = System.nanoTime();
+	                    
+	                    System.out.println("Service Time: " + ((eTime - sTime) / 1000000) + " ms" );
+                    }
+                    client_out.close();
+                    client.close();
                 } catch (Exception e) {
                     System.out.println("[P02 Proxy - Error]: " + e.getMessage());
                     sendBadRequestError(e.getMessage().getBytes(), client_out);
                 }
-                byte[] host = getHostOrPath(requestURI, false);
-                if(byteArrContains(host, blacklist_urls) == true)
-                {
-                    client_out.write("Restricted Site".getBytes());
-                    client.close();
-                }
-                byte[] hostIP = dns(host);
-                byte[] path = getHostOrPath(requestURI, true);
-                long sTime = System.nanoTime();
-                doHTTP(hostIP, requestObject, client_out);
-                long eTime = System.nanoTime();
-                
-                System.out.println("Service Time: " + ((eTime - sTime) / 1000000) + " ms" );
-                client_out.close();
-                client.close();
             }
         } catch (IOException | NumberFormatException e) {
             System.out.println("Some error occured while listening on port " + portNumber);
