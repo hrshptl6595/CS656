@@ -213,7 +213,7 @@ public class Web {
         try {
             char[] p_num = args[0].toCharArray(); // Converting the String Format into a Char array 
             portNumber = ConvCharToInt(p_num); // Conver the Char array to get the Port Number in Integer Format
-            System.out.println("Proxy Server listening on socket " + portNumber);
+            System.out.println("Web Proxy program by (hsp52@njit.edu) listening on port (" + portNumber + ")");
             int servingRequest = 0;
             ServerSocket server = new ServerSocket(); // Make a Server Socket
             server.bind(new InetSocketAddress(portNumber)); // Bind Socket with Port Number
