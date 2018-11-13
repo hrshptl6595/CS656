@@ -13,6 +13,8 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 public class Web {
     static final int MAX_REQUEST_LENGTH = 65535;
     static final int MAX_URI_LENGTH = 2048;
@@ -203,14 +205,30 @@ public class Web {
 		}
     	return;
     }
+
+    public static byte[] blacklist(byte[] fname) throws IOException
+    {
+        FileInputStream fin = new FileInputStream(new String(fname));
+        byte[] content = new byte[fin.available()];
+        int x;
+        int i = 0;
+        while((x = fin.read()) != -1)
+        {
+            content[i] = (byte)x;
+            i++;
+        }
+        return content;
+    }
     
     static int portNumber;
     public static void main(String[] args) throws IOException {
-        if (args.length != 1) {
-            System.err.println("Usage: java Web <port number>");
+        if (args.length != 2) {
+            System.err.println("Usage: java Web <port number> <blacklist.txt>");
             System.exit(1);
         }
         try {
+            byte[] file_name = args[1].getBytes();
+            byte[] blacklist_urls = blacklist(file_name);
             char[] p_num = args[0].toCharArray(); // Converting the String Format into a Char array 
             portNumber = ConvCharToInt(p_num); // Conver the Char array to get the Port Number in Integer Format
             System.out.println("Web Proxy program by (hsp52@njit.edu) listening on port (" + portNumber + ")");
@@ -233,6 +251,11 @@ public class Web {
                     sendBadRequestError(e.getMessage().getBytes(), client_out);
                 }
                 byte[] host = getHostOrPath(requestURI, false);
+                if(byteArrContains(host, blacklist_urls) == true)
+                {
+                    client_out.write("Restricted Site".getBytes());
+                    client.close();
+                }
                 byte[] hostIP = dns(host);
                 byte[] path = getHostOrPath(requestURI, true);
                 long sTime = System.nanoTime();
