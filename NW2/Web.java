@@ -80,7 +80,7 @@ public class Web {
             return 0;
         }
     }
-    public static byte[] dns(byte[] host) { // Main DNS method
+    public static byte[] dns(byte[] host, OutputStream client_out) throws Exception{ // Main DNS method
         int min_time = 0;
         byte[] dummybyte = {1};
         InetAddress preferredIP = null;
@@ -96,15 +96,18 @@ public class Web {
             }
         } catch (IOException e) {
             System.out.println("NO IP ADDRESS FOUND\n");
-            System.out.println("[P02 Proxy - Error]: " + e.getMessage());
+            // System.out.println("[P02 Proxy - Error]: " + e.getMessage());
             // System.exit(1);
         }
         if(preferredIP == null){
-            System.out.println("No Ip Address Found");
+            // System.out.println("No Ip Address Found");
+            // client_out.write(("No Ip Address Found").getBytes());
+            sendBadRequestError(("No Ip Address Found").getBytes(), client_out);
             return(dummybyte);
         }else{
             return preferredIP.getHostAddress().getBytes();
-    }}
+    }
+}
     /*
      * Will parse the Request Object to get the document path and will also check for blocked hosts
      */
@@ -243,6 +246,7 @@ public class Web {
             int servingRequest = 0;
             ServerSocket server = new ServerSocket(); // Make a Server Socket
             server.bind(new InetSocketAddress(portNumber)); // Bind Socket with Port Number
+            // server.bind(server.getLocalSocketAddress(), portNumber);
             while (true) { // Printing Server Side Information
                 Socket client = server.accept(); // Make a Server Socket
                 InputStream client_in = client.getInputStream();
@@ -258,7 +262,7 @@ public class Web {
                     if(byteArrContains(host, blacklist_urls)) {
                     	sendForbiddenError(client_out);
                     } else {
-	                    byte[] hostIP = dns(host);
+	                    byte[] hostIP = dns(host, client_out);
 	                    byte[] path = getHostOrPath(requestURI, true);
 	                    long sTime = System.nanoTime();
 	                    doHTTP(hostIP, requestObject, client_out);
@@ -269,7 +273,7 @@ public class Web {
                     client_out.close();
                     client.close();
                 } catch (Exception e) {
-                    System.out.println("[P02 Proxy - Error]: " + e.getMessage());
+                    // System.out.println("[P02 Proxy - Error]: " + e.getMessage());
                     sendBadRequestError(e.getMessage().getBytes(), client_out);
                 }
             }
