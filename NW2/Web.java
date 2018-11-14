@@ -22,8 +22,13 @@ public class Web {
     static final byte NULL_ASCII = 0;
     static final int HTTP_PORT = 80;
     static final int MAX_RESPONSE_BUFFER = 1024*1024;
-    static final int HTTP_BAD_REQUEST = 400;
-    static final int HTTP_FORBIDDEN_REQUEST = 403;
+    static final int HTTP_BAD_REQUEST_STATUS_CODE = 400;
+    static final byte[] HTTP_BAD_REQUEST_STATUS = "Bad Request".getBytes(); 
+    static final int HTTP_FORBIDDEN_STATUS_CODE = 403;
+    static final byte[] HTTP_FORBIDDEN_STATUS = "Forbidden".getBytes();
+    static final int HTTP_NOT_FOUND_STATUS_CODE = 404;
+    static final byte[] HTTP_NOT_FOUND_STATUS = "Not Found".getBytes();
+    
     public static int ConvCharToInt(char[] charArray) { // Used to parse Port Number into Int Format
         int num = 0;
         for (int i = 0; i < charArray.length; i++) {
@@ -56,17 +61,6 @@ public class Web {
         for (int i = 0; i < trimByteArray.length; i++) trimByteArray[i] = byteArr[i];
         return trimByteArray;
     }
-    public static byte[] stripByte(byte[] byteArr) {
-        int skipped = 0;
-        for (int i = 0; i + skipped < byteArr.length; i++) {
-            if (byteArr[i + skipped] == CARRIAGE_RETURN) skipped++;
-            byteArr[i] = byteArr[i + skipped];
-        }
-        byteArr = trimBytes(byteArr);
-        byte[] strippedArray = new byte[byteArr.length - skipped];
-        for (int i = 0; i < strippedArray.length; i++) strippedArray[i] = byteArr[i];
-        return strippedArray;
-    }
     // Used to Calculate Round trip time of one IP Address from the IP List
     public static int rtt(byte[] req_ip) throws IOException {
         try {
@@ -82,7 +76,7 @@ public class Web {
     }
     public static byte[] dns(byte[] host, OutputStream client_out) throws Exception{ // Main DNS method
         int min_time = 0;
-        byte[] dummybyte = {1};
+        byte[] emptyByteArray = new byte[0];
         InetAddress preferredIP = null;
         try {
             InetAddress[] ip_list = InetAddress.getAllByName(new String(host)); // Get list of IP Addresses
@@ -95,15 +89,11 @@ public class Web {
                 }
             }
         } catch (IOException e) {
-            System.out.println("NO IP ADDRESS FOUND\n");
-            // System.out.println("[P02 Proxy - Error]: " + e.getMessage());
-            // System.exit(1);
+            System.out.println("[P02 Proxy - Error]: " + e.getMessage());
         }
         if(preferredIP == null){
-            // System.out.println("No Ip Address Found");
-            // client_out.write(("No Ip Address Found").getBytes());
-            sendBadRequestError(("No Ip Address Found").getBytes(), client_out);
-            return(dummybyte);
+            System.out.println("\t\tNO IP ADDRESS FOUND");
+            return emptyByteArray;
         }else{
             return preferredIP.getHostAddress().getBytes();
         }
@@ -144,27 +134,25 @@ public class Web {
         	throw new Exception("Can\'t handle request with port other than 80");
         }
         return requestURI;
-    };
-    public static void sendBadRequestError(byte[] errorMessage, OutputStream client_out) {
+    }
+    
+    public static void sendHTTPError(int statusCode, byte[] status, byte[] errorMessage, OutputStream client_out) {
     	try {
-	    	client_out.write(("HTTP/1.1 "+ HTTP_BAD_REQUEST +" Bad Request\r\nContent-Type: text/html\r\nConnection: Keep-Alive\r\n\r\n").getBytes());
-	    	client_out.write(("<h1>" + HTTP_BAD_REQUEST + " Bad Request</h1>").getBytes());
-	    	client_out.write("<h4>Error: ".getBytes());
-	    	client_out.write(errorMessage);
-	    	client_out.write("</h4>".getBytes());
+    		byte[] httpHeader = responseBuilder(("HTTP/1.1 "+ statusCode +" ").getBytes(), status);
+    		httpHeader = responseBuilder(httpHeader, "\r\nContent-Type: text/html\r\nConnection: Keep-Alive\r\n\r\n".getBytes());
+    		
+    		byte[] httpBody = responseBuilder(("<h1>" + statusCode + " ").getBytes(), status);
+    		httpBody = responseBuilder(httpBody, "</h1><h4>Error: ".getBytes());
+    		httpBody = responseBuilder(httpBody, errorMessage);
+    		httpBody = responseBuilder(httpBody, "</h4>".getBytes());
+	    	
+    		client_out.write(httpHeader);
+    		client_out.write(httpBody);
     	} catch (IOException e) {
 			System.out.println("[P02 Proxy Error]: " + e.getMessage());
 		}
     }
-    public static void sendForbiddenError(OutputStream client_out) {
-    	try {
-	    	client_out.write(("HTTP/1.1 "+ HTTP_FORBIDDEN_REQUEST +" Forbidden\r\nContent-Type: text/html\r\nConnection: Keep-Alive\r\n\r\n").getBytes());
-	    	client_out.write(("<h1>" + HTTP_FORBIDDEN_REQUEST + " Forbidden</h1>").getBytes());
-	    	client_out.write("<h4>You are restricted to view this content!</h4>".getBytes());
-    	} catch (IOException e) {
-			System.out.println("[P02 Proxy Error]: " + e.getMessage());
-		}
-    }
+    
     public static byte[] getHostOrPath(byte[] requestURI, boolean needPath) {
         byte[] protocol = {
             requestURI[0],
@@ -260,22 +248,26 @@ public class Web {
                     requestURI = doParse(request);
                     byte[] host = getHostOrPath(requestURI, false);
                     if(byteArrContains(host, blacklist_urls)) {
-                    	sendForbiddenError(client_out);
+                    	byte[] errorMessage = "You are restricted to view this content!".getBytes();
+                    	sendHTTPError(HTTP_FORBIDDEN_STATUS_CODE, HTTP_FORBIDDEN_STATUS, errorMessage, client_out);
                     } else {
 	                    byte[] hostIP = dns(host, client_out);
-	                    byte[] path = getHostOrPath(requestURI, true);
-	                    long sTime = System.nanoTime();
-	                    doHTTP(hostIP, requestObject, client_out);
-	                    long eTime = System.nanoTime();
-	                    
-	                    System.out.println("Service Time: " + ((eTime - sTime) / 1000000) + " ms" );
+	                    if(hostIP.length != 0) {
+		                    long sTime = System.nanoTime();
+		                    doHTTP(hostIP, requestObject, client_out);
+		                    long eTime = System.nanoTime();
+		                    System.out.println("Service Time: " + ((eTime - sTime) / 1000000) + " ms" );
+	                    }else {
+	                    	byte[] errorMessage = "Requested resource not found!".getBytes();
+	                    	sendHTTPError(HTTP_NOT_FOUND_STATUS_CODE, HTTP_NOT_FOUND_STATUS, errorMessage, client_out);
+	                    }
                     }
-                    client_out.close();
-                    client.close();
                 } catch (Exception e) {
-                    // System.out.println("[P02 Proxy - Error]: " + e.getMessage());
-                    sendBadRequestError(e.getMessage().getBytes(), client_out);
+                    //System.out.println("[P02 Proxy - Error]: " + e.getMessage());
+                	sendHTTPError(HTTP_BAD_REQUEST_STATUS_CODE, HTTP_BAD_REQUEST_STATUS, e.getMessage().getBytes(), client_out);
                 }
+                client_out.close();
+                client.close();
             }
         } catch (IOException | NumberFormatException e) {
             System.out.println("Some error occured while listening on port " + portNumber);
