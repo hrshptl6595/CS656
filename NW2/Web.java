@@ -131,7 +131,7 @@ public class Web {
             throw new Exception("Unable to parse the request");
         }
         if(byteArrContains(":".getBytes(), getHostOrPath(requestURI, false))) {
-        	throw new Exception("Can\'t handle request with port other than 80");
+        	throw new Exception("Bad Port");
         }
         return requestURI;
     }
