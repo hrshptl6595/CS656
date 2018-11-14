@@ -106,8 +106,8 @@ public class Web {
             return(dummybyte);
         }else{
             return preferredIP.getHostAddress().getBytes();
+        }
     }
-}
     /*
      * Will parse the Request Object to get the document path and will also check for blocked hosts
      */
