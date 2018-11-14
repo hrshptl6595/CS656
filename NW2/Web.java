@@ -20,6 +20,7 @@ public class Web {
     static final int MAX_URI_LENGTH = 2048;
     static final byte CARRIAGE_RETURN = 13;
     static final byte NULL_ASCII = 0;
+    static final byte SPACE_ASCII = 32;
     static final int HTTP_PORT = 80;
     static final int MAX_RESPONSE_BUFFER = 1024*1024;
     static final int HTTP_BAD_REQUEST_STATUS_CODE = 400;
@@ -108,7 +109,7 @@ public class Web {
         int chunkNum = 1;
         int start = 0, end = 0;
         for (int i = 0; i < request.length; i++) {
-            if (request[i] == 32 || i == request.length - 1) {
+            if (request[i] == SPACE_ASCII || i == request.length - 1) {
                 end = (i == request.length - 1 ? i : i - 1);
                 int k = 0;
                 switch (chunkNum) {
@@ -202,7 +203,7 @@ public class Web {
 			}
 			client_out.flush();
 	    } catch (IOException e) {
-	    	System.out.println("[P02 Proxy Error]: " + e.getMessage());
+	    	//System.out.println("[P02 Proxy Error]: " + e.getMessage());
 		}
     	return;
     }
@@ -234,7 +235,6 @@ public class Web {
             int servingRequest = 0;
             ServerSocket server = new ServerSocket(); // Make a Server Socket
             server.bind(new InetSocketAddress(portNumber)); // Bind Socket with Port Number
-            // server.bind(server.getLocalSocketAddress(), portNumber);
             while (true) { // Printing Server Side Information
                 Socket client = server.accept(); // Make a Server Socket
                 InputStream client_in = client.getInputStream();
@@ -263,7 +263,7 @@ public class Web {
 	                    }
                     }
                 } catch (Exception e) {
-                    //System.out.println("[P02 Proxy - Error]: " + e.getMessage());
+                    System.out.println("[P02 Proxy - Error]: " + e.getMessage());
                 	sendHTTPError(HTTP_BAD_REQUEST_STATUS_CODE, HTTP_BAD_REQUEST_STATUS, e.getMessage().getBytes(), client_out);
                 }
                 client_out.close();
